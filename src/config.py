@@ -1,0 +1,1 @@
+CLASSES = ["book", "door", "envelope", "pants", "lightning", "diamond", "circle", "triangle", "hexagon", "square"]
