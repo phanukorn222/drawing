@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import mediapipe as mp
+import random
 
 # ตั้งค่า Mediapipe
 mp_hands = mp.solutions.hands
@@ -16,6 +17,13 @@ prev_point = None
 # ตำแหน่งของโซน Save และ Clear
 save_zone = (width - 120, 20, width - 20, 100)
 clear_zone = (20, 20, 120, 100)
+
+# รายการโจทย์
+prompts = ["book", "door","leaf"]
+current_prompt = random.choice(prompts)
+
+def get_mockup_prediction():
+    return random.choice(prompts)
 
 cap = cv2.VideoCapture(0)
 
@@ -35,16 +43,15 @@ while cap.isOpened():
             
             fingers = [landmark_list[8].y < landmark_list[6].y, landmark_list[12].y < landmark_list[10].y]
             
-            if fingers == [True, False]:  # ชูนิ้วชี้ วาดรูป
+            if fingers == [True, False]:  # วาดรูป
                 drawing = True
                 if prev_point is not None:
                     cv2.line(canvas, prev_point, index_finger_tip, (0, 255, 0), 5, cv2.LINE_AA)
                 prev_point = index_finger_tip
-            elif fingers == [True, True]:  # ชูนิ้วชี้และนิ้วกลาง หยุดวาด
+            elif fingers == [True, True]:  # หยุดวาด
                 drawing = False
                 prev_point = None
                 
-                # ตรวจสอบว่าปลายนิ้วกลางอยู่ในช่องทางไหน
                 if save_zone[0] <= middle_finger_tip[0] <= save_zone[2] and save_zone[1] <= middle_finger_tip[1] <= save_zone[3]:
                     cv2.imwrite("drawing.png", canvas)
                     print("Saved drawing.png")
@@ -56,11 +63,18 @@ while cap.isOpened():
     
     frame = cv2.addWeighted(frame, 0.5, canvas, 0.5, 0)
     
-    # ui
+    # UI
     cv2.rectangle(frame, save_zone[:2], save_zone[2:], (0, 200, 255), -1)
     cv2.putText(frame, "Save", (save_zone[0] + 10, save_zone[1] + 50), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
     cv2.rectangle(frame, clear_zone[:2], clear_zone[2:], (255, 100, 100), -1)
     cv2.putText(frame, "Clear", (clear_zone[0] + 10, clear_zone[1] + 50), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
+    
+    # แสดงโจทย์ด้านบน
+    cv2.putText(frame, f"Draw: {current_prompt}", (width // 2 - 100, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+    
+    # แสดงการคาดเดาของบอทด้านล่าง (Mockup)
+    predicted_object = get_mockup_prediction()
+    cv2.putText(frame, f"Bot thinks: {predicted_object}", (width // 2 - 150, height - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 0), 2)
     
     cv2.imshow("Hand Drawing", frame)
     
