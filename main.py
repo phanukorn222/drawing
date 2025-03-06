@@ -6,12 +6,12 @@ from src.utils import preprocess_image, get_random_class
 import cv2
 import mediapipe as mp
 import time
+import argparse
 
-def main():
+def main(args):
     # Initialize predicted_class_name
     predicted_class_name = None
     last_trigger_time = 0
-    debounce_time = 1  # 1 second debounce time
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -29,10 +29,10 @@ def main():
         # ตั้งค่า Mediapipe
         mp_hands = mp.solutions.hands
         mp_draw = mp.solutions.drawing_utils
-        hands = mp_hands.Hands(min_detection_confidence=0.7, min_tracking_confidence=0.7)
+        hands = mp_hands.Hands(min_detection_confidence=args.detection_confidence, min_tracking_confidence=args.tracking_confidence)
 
         # ขนาดเฟรม
-        width, height = 640, 480
+        width, height = args.frame_width, args.frame_height
         canvas = np.zeros((height, width, 3), dtype=np.uint8)
         drawing = False
         prev_point = None
@@ -49,6 +49,7 @@ def main():
             if not ret:
                 break
             frame = cv2.flip(frame, 1)
+            frame = cv2.resize(frame, (width, height))  # Resize the frame to match the canvas dimensions
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             results = hands.process(rgb_frame)
             
@@ -71,7 +72,7 @@ def main():
                         
                         # ตรวจสอบว่าปลายนิ้วกลางอยู่ในช่องทางไหน
                         current_time = time.time()
-                        if current_time - last_trigger_time > debounce_time:
+                        if current_time - last_trigger_time > args.debounce_time:
                             if save_zone[0] <= middle_finger_tip[0] <= save_zone[2] and save_zone[1] <= middle_finger_tip[1] <= save_zone[3]:
                                 cv2.imwrite("drawing.png", canvas)
                                 print("Saved drawing.png")
@@ -131,10 +132,13 @@ def main():
                 cv2.destroyAllWindows()
                 return
 
-        # Ask the user if they want to draw another class
-        user_input = input("Do you want to draw another class? (y/n): ")
-        if user_input.lower() != 'y':
-            break
-
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Hand Drawing Application")
+    parser.add_argument("--frame_width", type=int, default=640, help="Width of the frame")
+    parser.add_argument("--frame_height", type=int, default=480, help="Height of the frame")
+    parser.add_argument("--debounce_time", type=float, default=1.0, help="Debounce time in seconds")
+    parser.add_argument("--detection_confidence", type=float, default=0.7, help="Minimum detection confidence")
+    parser.add_argument("--tracking_confidence", type=float, default=0.7, help="Minimum tracking confidence")
+    
+    args = parser.parse_args()
+    main(args)
