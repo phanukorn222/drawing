@@ -4,3 +4,7 @@ torchvision
 numpy
 opencv-python
 mediapipe
+matplotlib
+scikit-learn
+seaborn
+google.cloud.storage
